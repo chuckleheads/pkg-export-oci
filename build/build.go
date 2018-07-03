@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chuckleheads/pkg-export-oci/chmod"
+	"github.com/chuckleheads/pkg-export-oci/runc"
 	"github.com/go-cmd/cmd"
 )
 
@@ -29,20 +30,28 @@ type Naming struct {
 }
 
 func Build(fsroot string, pkg string) {
-	installBasePkgs(fsroot)
 	installUserPkgs(fsroot, pkg)
+	totesAService := isAService(fsroot, pkg)
+	installBasePkgs(fsroot, totesAService)
 	chmod.ChmodR(filepath.Join(fsroot, "hab"))
 	binlink(fsroot)
+	runc.GenRuncConfig(fsroot, totesAService)
 
 	fmt.Printf("I'm a service?: %v", isAService(fsroot, pkg))
 }
 
 func install(fsroot string, pkg string) {
-	runCommand(fsroot, "hab", "pkg", "install", pkg)
+	runHabCommand(fsroot, "pkg", "install", pkg)
 }
 
-func installBasePkgs(fsroot string) {
-	basePkgs := []string{"core/hab", "core/hab-sup", "core/hab-launcher", "core/busybox", "core/cacerts"}
+func installBasePkgs(fsroot string, serviceIs bool) {
+	basePkgs := []string{"core/hab", "core/busybox", "core/cacerts"}
+	// We don't install the sup and launcher if it's not needed.
+	// If pkg is not a service, then we consider it not needed.
+	if serviceIs {
+		basePkgs = append(basePkgs, "core/hab-sup")
+		basePkgs = append(basePkgs, "core/hab-launcher")
+	}
 	for _, pkg := range basePkgs {
 		install(fsroot, pkg)
 	}
@@ -53,21 +62,19 @@ func installUserPkgs(fsroot string, pkg string) {
 }
 
 func binlink(fsroot string) {
-	runCommand(fsroot, "hab", "pkg", "binlink", "core/busybox", "busybox")
-	runCommand(fsroot, "hab", "pkg", "binlink", "core/busybox", "sh")
-	runCommand(fsroot, "hab", "pkg", "binlink", "core/hab", "hab")
+	runHabCommand(fsroot, "pkg", "binlink", "core/busybox", "busybox")
+	runHabCommand(fsroot, "pkg", "binlink", "core/busybox", "sh")
+	runHabCommand(fsroot, "pkg", "binlink", "core/hab", "hab")
 }
 
-func runCommand(fsroot string, args ...string) cmd.Status {
+func runHabCommand(fsroot string, args ...string) cmd.Status {
 	cmdOptions := cmd.Options{
 		Buffered:  true,
 		Streaming: true,
 	}
 
-	name, args := args[0], args[1:]
-
 	// Create Cmd with options
-	habCmd := cmd.NewCmdOptions(cmdOptions, name, args...)
+	habCmd := cmd.NewCmdOptions(cmdOptions, "hab", args...)
 	habCmd.Env = []string{fmt.Sprintf("FS_ROOT=%s", fsroot), "TERM=xterm-256color"}
 	// Print STDOUT and STDERR lines streaming from Cmd
 	go func() {
@@ -92,7 +99,7 @@ func runCommand(fsroot string, args ...string) cmd.Status {
 }
 
 func isAService(fsroot string, ident string) bool {
-	status := runCommand(fsroot, "hab", "pkg", "path", ident)
+	status := runHabCommand(fsroot, "pkg", "path", ident)
 	if status.Error != nil {
 		panic(status.Error)
 	}
