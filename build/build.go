@@ -33,6 +33,8 @@ func Build(fsroot string, pkg string) {
 	installUserPkgs(fsroot, pkg)
 	chmod.ChmodR(filepath.Join(fsroot, "hab"))
 	binlink(fsroot)
+
+	fmt.Printf("I'm a service?: %v", isAService(fsroot, pkg))
 }
 
 func install(fsroot string, pkg string) {
@@ -56,9 +58,9 @@ func binlink(fsroot string) {
 	runCommand(fsroot, "hab", "pkg", "binlink", "core/hab", "hab")
 }
 
-func runCommand(fsroot string, args ...string) {
+func runCommand(fsroot string, args ...string) cmd.Status {
 	cmdOptions := cmd.Options{
-		Buffered:  false,
+		Buffered:  true,
 		Streaming: true,
 	}
 
@@ -80,10 +82,21 @@ func runCommand(fsroot string, args ...string) {
 	}()
 
 	// Run and wait for Cmd to return, discard Status
-	<-habCmd.Start()
+	finalStatus := <-habCmd.Start()
 
 	// Cmd has finished but wait for goroutine to print all lines
 	for len(habCmd.Stdout) > 0 || len(habCmd.Stderr) > 0 {
 		time.Sleep(10 * time.Millisecond)
 	}
+	return finalStatus
+}
+
+func isAService(fsroot string, ident string) bool {
+	status := runCommand(fsroot, "hab", "pkg", "path", ident)
+	if status.Error != nil {
+		panic(status.Error)
+	}
+	_, err := os.Stat(filepath.Join(status.Stdout[0], "SVC_USER"))
+	// If the `SVC_USER` file doesn't exist we aren't a service
+	return !os.IsNotExist(err)
 }
