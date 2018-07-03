@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/chuckleheads/hab-oci-exporter/chmod"
+	"github.com/chuckleheads/pkg-export-oci/chmod"
 	"github.com/go-cmd/cmd"
 )
 

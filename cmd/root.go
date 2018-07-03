@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chuckleheads/hab-oci-exporter/build"
-	"github.com/chuckleheads/hab-oci-exporter/rootfs"
+	"github.com/chuckleheads/pkg-export-oci/build"
+	"github.com/chuckleheads/pkg-export-oci/rootfs"
 	"github.com/spf13/cobra"
 )
 

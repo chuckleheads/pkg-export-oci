@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/chuckleheads/hab-oci-exporter/cmd"
+import "github.com/chuckleheads/pkg-export-oci/cmd"
 
 func main() {
 	cmd.Execute()
