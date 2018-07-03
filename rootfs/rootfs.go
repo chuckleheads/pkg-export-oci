@@ -45,7 +45,7 @@ func createTempFS() (dir string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return dir
+	return filepath.Join(dir, "rootfs")
 }
 
 func check(e error) {
