@@ -28,18 +28,12 @@ var n build.Naming
 
 var rootCmd = &cobra.Command{
 	Use:   "hab-oci-exporter [flags] <PKG_IDENT_OR_ARTIFACT>",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(1),
+	Short: "Exporter for runc packages",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		tmpDir := rootfs.Create()
 		// defer os.RemoveAll(tmpDir)
-		build.Build(tmpDir, args[0])
+		b.Build(tmpDir, args[0])
 	},
 }
 
@@ -61,6 +55,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&b.Hab, "hab-pkg", "", "core/hab", "Habitat CLI package identifier (ex: acme/redis) or filepath to a Habitat artifact (ex: acme-redis-3.0.7-21120102031201-x86_64-linux.hart) to install")
 	rootCmd.Flags().StringVarP(&b.HabLauncher, "launcher-pkg", "", "core/hab-launcher", "Launcher package identifier (ex: core/hab-launcher) or filepath to a Habitat artifact (ex: core-hab-launcher-6083-20171101045646-x86_64-linux.hart) to install")
 	rootCmd.Flags().StringVarP(&b.HabSup, "sup-pkg", "", "core/hab-sup", "Supervisor package identifier (ex: core/hab-sup) or filepath to a Habitat artifact (ex: core-hab-sup-0.39.1-20171118011657-x86_64-linux.hart) to install")
+	rootCmd.Flags().StringVarP(&b.Entrypoint, "entrypoint", "e", "", "Specify an optional default entrypoint for the service. This will cause the container to run in a one-off mode")
 	rootCmd.Flags().StringVarP(&n.CustomImageName, "img-name", "i", "{{pkg_origin}}/{{pkg_name}}", "Image name")
 	rootCmd.Flags().StringVarP(&n.CustomTag, "tag-custom", "", "", " Tag image with additional custom tag")
 }

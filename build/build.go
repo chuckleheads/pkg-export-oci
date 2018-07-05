@@ -19,6 +19,7 @@ type BuildSpec struct {
 	Channel             string
 	BasePackagesURL     string
 	BasePackagesChannel string
+	Entrypoint          string
 }
 
 type Naming struct {
@@ -29,15 +30,21 @@ type Naming struct {
 	CustomTag         string
 }
 
-func Build(fsroot string, pkg string) {
+func (b *BuildSpec) Build(fsroot string, pkg string) {
 	installUserPkgs(fsroot, pkg)
 	totesAService := isAService(fsroot, pkg)
+	if !totesAService && b.Entrypoint == "" {
+		fmt.Printf("No service found and Entrypoint is empty")
+		os.Exit(1)
+	}
 	installBasePkgs(fsroot, totesAService)
 	chmod.ChmodR(filepath.Join(fsroot, "hab"))
 	binlink(fsroot)
-	runc.GenRuncConfig(fsroot, totesAService)
-
-	fmt.Printf("I'm a service?: %v", isAService(fsroot, pkg))
+	err := runc.Config(fsroot, pkg, b.Entrypoint, totesAService)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 }
 
 func install(fsroot string, pkg string) {
@@ -107,3 +114,12 @@ func isAService(fsroot string, ident string) bool {
 	// If the `SVC_USER` file doesn't exist we aren't a service
 	return !os.IsNotExist(err)
 }
+
+// func serviceUser(fsroot string, ident) string {
+// 	status := runHabCommand(fsroot, "pkg", "path", ident)
+// 	if status.Error != nil {
+// 		panic(status.Error)
+// 	}
+// 	user, err := ioutil.ReadFile(filepath.Join(status.Stdout[0], "SVC_USER"))
+// 	return strings(user)
+// }
