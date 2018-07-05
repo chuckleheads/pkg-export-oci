@@ -27,14 +27,6 @@ type BuildSpec struct {
 	Entrypoint          string
 }
 
-type Naming struct {
-	CustomImageName   string
-	LatestTag         bool
-	VersionTag        bool
-	VersionReleaseTag bool
-	CustomTag         string
-}
-
 func (b *BuildSpec) Build(fsroot string, pkg string) {
 	installUserPkgs(fsroot, pkg)
 	totesAService := isAService(fsroot, pkg)
@@ -56,6 +48,7 @@ func (b *BuildSpec) Build(fsroot string, pkg string) {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+	cleanup(fsroot)
 }
 
 func install(fsroot string, pkg string) {
@@ -148,6 +141,6 @@ func serviceAccounts(fsroot string, ident string) account.Account {
 	return account.New(strings.TrimSpace(string(user[:])), strings.TrimSpace(string(group[:])))
 }
 
-func renderPasswd(rootfs string) {
-
+func cleanup(rootfs string) {
+	os.RemoveAll(filepath.Join(rootfs, "hab", "cache"))
 }

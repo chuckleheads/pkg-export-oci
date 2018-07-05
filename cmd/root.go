@@ -17,6 +17,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/chuckleheads/pkg-export-oci/build"
 	"github.com/chuckleheads/pkg-export-oci/rootfs"
@@ -24,7 +27,6 @@ import (
 )
 
 var b build.BuildSpec
-var n build.Naming
 
 var rootCmd = &cobra.Command{
 	Use:   "hab-oci-exporter [flags] <PKG_IDENT_OR_ARTIFACT>",
@@ -32,8 +34,17 @@ var rootCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		tmpDir := rootfs.Create()
-		// defer os.RemoveAll(tmpDir)
-		b.Build(tmpDir, args[0])
+		defer os.RemoveAll(tmpDir)
+		ident := args[0]
+		b.Build(tmpDir, ident)
+		fIdent := strings.Replace(ident, "/", "-", -1)
+		fmt.Println("Creating archive...")
+		komand := exec.Command(fmt.Sprintf("tar -cvjSf %s.tar.bz2 %s %s", fIdent, tmpDir, filepath.Join(tmpDir, "..", "config.json")))
+		err := komand.Run()
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
 	},
 }
 
@@ -45,17 +56,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().BoolP("tag-latest", "", true, "Tag image with: \"latest\"")
-	rootCmd.Flags().BoolP("tag-version", "", true, "Tag image with: \"{{pkg_version}}\"")
-	rootCmd.Flags().BoolP("tag-latest-release", "", true, "Tag image with: \"{{pkg_version}}-{{pkg_release}}\"")
-	rootCmd.Flags().StringVarP(&b.BasePackagesURL, "base-pkgs-url", "", "https://bldr.habitat.sh", "Install base packages from Builder at the specified URL")
-	rootCmd.Flags().StringVarP(&b.BasePackagesChannel, "base-pkgs-channel", "", "stable", "Install base packages from the specified release channel")
-	rootCmd.Flags().StringVarP(&b.URL, "url", "u", "https://bldr.habitat.sh", "Install packages from Builder at the specified URL")
-	rootCmd.Flags().StringVarP(&b.Channel, "channel", "c", "stable", "Install packages from the specified release channel")
-	rootCmd.Flags().StringVarP(&b.Hab, "hab-pkg", "", "core/hab", "Habitat CLI package identifier (ex: acme/redis) or filepath to a Habitat artifact (ex: acme-redis-3.0.7-21120102031201-x86_64-linux.hart) to install")
-	rootCmd.Flags().StringVarP(&b.HabLauncher, "launcher-pkg", "", "core/hab-launcher", "Launcher package identifier (ex: core/hab-launcher) or filepath to a Habitat artifact (ex: core-hab-launcher-6083-20171101045646-x86_64-linux.hart) to install")
-	rootCmd.Flags().StringVarP(&b.HabSup, "sup-pkg", "", "core/hab-sup", "Supervisor package identifier (ex: core/hab-sup) or filepath to a Habitat artifact (ex: core-hab-sup-0.39.1-20171118011657-x86_64-linux.hart) to install")
 	rootCmd.Flags().StringVarP(&b.Entrypoint, "entrypoint", "e", "", "Specify an optional default entrypoint for the service. This will cause the container to run in a one-off mode")
-	rootCmd.Flags().StringVarP(&n.CustomImageName, "img-name", "i", "{{pkg_origin}}/{{pkg_name}}", "Image name")
-	rootCmd.Flags().StringVarP(&n.CustomTag, "tag-custom", "", "", " Tag image with additional custom tag")
 }

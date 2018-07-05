@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -15,7 +16,8 @@ func Config(fsroot string, pkg string, entrypoint string, isAService bool) error
 	if isAService {
 		spec.Process.Args = []string{"hab", "sup", "run", pkg}
 	} else {
-		spec.Process.Args = []string{"hab", "pkg", "exec", pkg, entrypoint}
+		command := []string{"hab", "pkg", "exec", pkg}
+		spec.Process.Args = append(command, strings.Split(entrypoint, " ")...)
 	}
 
 	data, err := json.MarshalIndent(spec, "", "\t")
