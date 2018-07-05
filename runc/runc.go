@@ -33,18 +33,13 @@ func config() *specs.Spec {
 	return &specs.Spec{
 		Version: specs.Version,
 		Root: &specs.Root{
-			Path:     "rootfs",
-			Readonly: true,
+			Path: "rootfs",
 		},
 		Process: &specs.Process{
 			Terminal: true,
-			User:     specs.User{},
-			Args: []string{
-				"sh",
-			},
-			Env: []string{
-				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-				"TERM=xterm",
+			User: specs.User{
+				UID: 1000,
+				GID: 1000,
 			},
 			Cwd:             "/",
 			NoNewPrivileges: true,

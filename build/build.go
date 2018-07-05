@@ -2,10 +2,15 @@ package build
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/chuckleheads/habitat/components/hab/pkg/ui"
+
+	"github.com/chuckleheads/pkg-export-oci/account"
 	"github.com/chuckleheads/pkg-export-oci/chmod"
 	"github.com/chuckleheads/pkg-export-oci/runc"
 	"github.com/go-cmd/cmd"
@@ -40,6 +45,12 @@ func (b *BuildSpec) Build(fsroot string, pkg string) {
 	installBasePkgs(fsroot, totesAService)
 	chmod.ChmodR(filepath.Join(fsroot, "hab"))
 	binlink(fsroot)
+
+	if totesAService {
+		account := serviceAccounts(fsroot, pkg)
+		account.Write(fsroot)
+	}
+
 	err := runc.Config(fsroot, pkg, b.Entrypoint, totesAService)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -108,18 +119,35 @@ func runHabCommand(fsroot string, args ...string) cmd.Status {
 func isAService(fsroot string, ident string) bool {
 	status := runHabCommand(fsroot, "pkg", "path", ident)
 	if status.Error != nil {
-		panic(status.Error)
+		ui.Fatal(fmt.Sprintf("%d", status.Exit))
+		os.Exit(1)
 	}
 	_, err := os.Stat(filepath.Join(status.Stdout[0], "SVC_USER"))
 	// If the `SVC_USER` file doesn't exist we aren't a service
 	return !os.IsNotExist(err)
 }
 
-// func serviceUser(fsroot string, ident) string {
-// 	status := runHabCommand(fsroot, "pkg", "path", ident)
-// 	if status.Error != nil {
-// 		panic(status.Error)
-// 	}
-// 	user, err := ioutil.ReadFile(filepath.Join(status.Stdout[0], "SVC_USER"))
-// 	return strings(user)
-// }
+func serviceAccounts(fsroot string, ident string) account.Account {
+	status := runHabCommand(fsroot, "pkg", "path", ident)
+	if status.Error != nil {
+		ui.Fatal(fmt.Sprintf("%d", status.Exit))
+		os.Exit(1)
+	}
+	user, err := ioutil.ReadFile(filepath.Join(status.Stdout[0], "SVC_USER"))
+	if err != nil {
+		ui.Fatal(err.Error())
+		os.Exit(1)
+	}
+
+	group, err := ioutil.ReadFile(filepath.Join(status.Stdout[0], "SVC_GROUP"))
+	if err != nil {
+		ui.Fatal(err.Error())
+		os.Exit(1)
+	}
+
+	return account.New(strings.TrimSpace(string(user[:])), strings.TrimSpace(string(group[:])))
+}
+
+func renderPasswd(rootfs string) {
+
+}
