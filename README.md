@@ -22,6 +22,5 @@ This will give you a bzip tarball that contains everyting you need to run your s
 
 ```
 tar xvjf chef-inspec.tar.bz2
-
-
+sudo runc run inspec
 ```
