@@ -37,6 +37,7 @@ var rootCmd = &cobra.Command{
 		defer os.RemoveAll(tmpDir)
 		ident := args[0]
 		b.Build(tmpDir, ident)
+		// Replace all `/` with `-`
 		fIdent := strings.Replace(ident, "/", "-", -1)
 		fmt.Println("Creating archive...")
 		komand := exec.Command(fmt.Sprintf("tar -cvjSf %s.tar.bz2 %s %s", fIdent, tmpDir, filepath.Join(tmpDir, "..", "config.json")))
